@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mes Notes Sécurisées</title>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --danger: #FF3B30;
+            --success: #34C759;
+            --warning: #FF9500;
+            --bg: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --text: #000000;
+            --text-sec: #8E8E93;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header & Liste --- */
+        #list-view { display: flex; flex-direction: column; height: 100%; position: relative; }
+        header {
+            background-color: var(--card-bg); padding: 8px 12px; border-bottom: 1px solid #C6C6C8;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .header-row-1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .header-controls { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+        
+        h1 { font-size: 17px; margin: 0; font-weight: 700; display: inline-block; margin-right: 6px; white-space: nowrap; }
+        
+        .cat-select {
+            padding: 5px 8px; border-radius: 6px; border: 1px solid #C6C6C8;
+            background-color: #E3E3E8; font-size: 13px; font-weight: 600; color: var(--text); outline: none; 
+            max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        
+        .cat-manage-btn {
+            font-size: 12px; background: none; border: 1px solid var(--primary); color: var(--primary);
+            padding: 4px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; 
+            font-weight: 600; white-space: nowrap;
+        }
+        
+        .backup-btn { 
+            font-size: 16px; background: none; border: none; cursor: pointer; padding: 2px; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        #search-bar {
+            width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid #C6C6C8;
+            background-color: #E3E3E8; font-size: 14px; box-sizing: border-box; outline: none;
+        }
+
+        #notes-list { flex: 1; overflow-y: auto; padding: 8px; padding-bottom: 80px; }
+        .note-item {
+            background-color: var(--card-bg); padding: 10px 12px; margin-bottom: 6px; border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; display: flex; align-items: center; gap: 10px;
+        }
+        .note-item:active { transform: scale(0.98); background-color: #f0f0f0; }
+        .fav-icon { color: var(--warning); font-size: 16px; flex-shrink: 0; visibility: hidden; width: 18px; text-align: center; }
+        .fav-icon.visible { visibility: visible; }
+        .lock-icon { color: var(--text-sec); font-size: 14px; flex-shrink: 0; width: 18px; text-align: center; }
+        .item-content { flex: 1; min-width: 0; }
+        .note-title { font-weight: 600; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .note-preview { font-size: 12px; color: var(--text-sec); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .fab {
+            position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px; background-color: var(--primary);
+            color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 24px; box-shadow: 0 4px 10px rgba(0,122,255,0.4); cursor: pointer; border: none; z-index: 15;
+        }
+
+        /* --- Vues Plein Écran --- */
+        .full-screen-view {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg);
+            z-index: 20; display: none; flex-direction: column; overflow-y: auto;
+        }
+        .view-header {
+            background-color: var(--card-bg); padding: 12px 15px; display: flex; align-items: center;
+            justify-content: space-between; border-bottom: 1px solid #C6C6C8; position: sticky; top: 0; flex-shrink: 0;
+        }
+        .back-btn, .action-header-btn { background: none; border: none; font-size: 15px; cursor: pointer; padding: 5px 8px; }
+        .back-btn { color: var(--primary); }
+        .action-header-btn { color: var(--primary); font-weight: 600; }
+        .view-content { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+
+        /* Détail */
+        .detail-header-row { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; flex-shrink: 0; flex-wrap: wrap; }
+        .detail-title { font-size: 22px; font-weight: 700; margin: 0; }
+        .detail-fav-star { color: var(--warning); font-size: 20px; line-height: 1; }
+        .secure-badge {
+            background-color: var(--text-sec); color: white; font-size: 10px; padding: 2px 5px;
+            border-radius: 4px; text-transform: uppercase; font-weight: 700; display: none;
+        }
+        .secure-badge.visible { display: inline-block; }
+        .section-label { font-size: 11px; color: var(--text-sec); text-transform: uppercase; margin-bottom: 5px; margin-top: 10px; font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
+        .detail-box-info {
+            background-color: var(--card-bg); padding: 15px; border-radius: 10px; font-size: 15px; line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); white-space: pre-wrap; width: 100%; box-sizing: border-box;
+            min-height: 150px; flex-grow: 1; overflow-y: auto; border: 1px solid rgba(0,0,0,0.05);
+        }
+        .btn-delete-small {
+            background: none; border: none; color: var(--danger); font-size: 13px; text-decoration: underline;
+            cursor: pointer; padding: 15px 0; margin: 0 auto; display: block; opacity: 0.7; flex-shrink: 0;
+        }
+        .btn-change-pass {
+            background: none; border: 1px solid var(--primary); color: var(--primary); font-size: 13px;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 10px;
+            display: none; width: 100%;
+        }
+        .btn-change-pass.visible { display: block; }
+
+        /* Formulaire & Catégories */
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--text-sec); font-size: 12px; text-transform: uppercase; }
+        
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .toggle-pass-btn {
+            position: absolute; right: 10px; background: none; border: none; cursor: pointer;
+            color: var(--text-sec); font-size: 18px; padding: 0; display: flex; align-items: center;
+        }
+        
+        .checkbox-group {
+            display: flex; align-items: center; gap: 10px; padding: 12px; background-color: var(--card-bg);
+            border-radius: 8px; border: 1px solid #C6C6C8; margin-bottom: 12px;
+        }
+        .checkbox-group input { width: 18px; height: 18px; accent-color: var(--warning); }
+        .checkbox-group label { font-size: 15px; font-weight: 500; color: var(--text); margin: 0; cursor: pointer; }
+        
+        .secure-input-group { display: none; margin-top: 8px; padding: 12px; background-color: #FFF3CD; border: 1px solid #FFEEBA; border-radius: 8px; }
+        .secure-input-group.visible { display: block; }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #C6C6C8;
+            background-color: var(--card-bg); font-size: 15px; font-family: inherit; box-sizing: border-box; color: #000;
+        }
+        .form-textarea { min-height: 250px; resize: vertical; }
+        
+        .btn-save {
+            background-color: var(--primary); color: white; width: 100%; padding: 14px; border: none;
+            border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 15px; margin-bottom: 30px;
+        }
+
+        /* Gestion Catégories */
+        .cat-list-item {
+            background: var(--card-bg); padding: 12px; border-radius: 8px; margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .cat-name { font-weight: 600; font-size: 15px; }
+        .cat-actions button {
+            background: none; border: none; font-size: 13px; padding: 4px 8px; cursor: pointer;
+            border-radius: 5px; margin-left: 4px;
+        }
+        .btn-edit-cat { color: var(--primary); background-color: rgba(0,122,255,0.1); }
+        .btn-del-cat { color: var(--danger); background-color: rgba(255,59,48,0.1); }
+        .btn-add-cat {
+            width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none;
+            border-radius: 8px; font-size: 15px; font-weight: 600; margin-top: 15px; cursor: pointer;
+        }
+
+        #file-input { display: none; }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 100; display: none; justify-content: center; align-items: center;
+        }
+        .modal-box {
+            background: var(--card-bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 320px;
+            text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+        .modal-input-wrapper { position: relative; margin-bottom: 12px; text-align: left; }
+        .modal-input {
+            width: 100%; padding: 10px 35px 10px 10px; border: 1px solid #C6C6C8; border-radius: 6px;
+            font-size: 15px; box-sizing: border-box;
+        }
+        .modal-toggle-btn {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; color: var(--text-sec); font-size: 18px;
+        }
+        .modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 15px; }
+        .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .modal-cancel { background: #E5E5EA; color: #000; }
+        .modal-confirm { background: var(--primary); color: white; }
+        .modal-error { color: var(--danger); font-size: 12px; margin-top: 8px; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- VUE LISTE -->
+    <div id="list-view">
+        <header>
+            <div class="header-row-1">
+                <h1>Notes</h1>
+                <div class="header-controls">
+                    <select id="cat-filter" class="cat-select" onchange="renderList()">
+                        <option value="all">Toutes</option>
+                    </select>
+                    <button class="cat-manage-btn" onclick="openCatManager()">Cat.</button>
+                    <button class="backup-btn" onclick="exportData()" title="Sauvegarder">💾</button>
+                    <button class="backup-btn restore" onclick="triggerImport()" title="Restaurer">📂</button>
+                </div>
+            </div>
+            <input type="text" id="search-bar" placeholder="Rechercher...">
+        </header>
+        <div id="notes-list"></div>
+        <button class="fab" onclick="openForm()">+</button>
+    </div>
+
+    <!-- VUE DÉTAIL -->
+    <div id="detail-view" class="full-screen-view">
+        <div class="view-header">
+            <button class="back-btn" onclick="closeView('detail-view')">← Retour</button>
+            <button class="action-header-btn" onclick="startEditProcess()">Modifier</button>
+        </div>
+        <div class="view-content">
+            <div class="detail-header-row">
+                <div class="detail-title" id="d-title">Titre</div>
+                <div class="detail-fav-star" id="d-fav-star" style="display:none;">★</div>
+                <div class="secure-badge" id="d-secure-badge">🔒</div>
+            </div>
+            
+            <div class="section-label">Contenu</div>
+            <div class="detail-box-info" id="d-info"></div>
+
+            <button id="btn-change-pass" class="btn-change-pass" onclick="openChangePassModal()">
+                🔑 Changer le mot de passe
+            </button>
+
+            <button class="btn-delete-small" onclick="deleteCurrentNote()">Supprimer cette note</button>
+        </div>
+    </div>
+
+    <!-- VUE FORMULAIRE NOTE -->
+    <div id="form-view" class="full-screen-view">
+        <div class="view-header">
+            <button class="back-btn" onclick="closeView('form-view')">Annuler</button>
+            <h2 style="margin:0; font-size:17px;" id="form-title-text">Nouvelle Note</h2>
+            <div style="width:50px;"></div>
+        </div>
+        <div class="view-content">
+            <input type="hidden" id="f-id">
+            <div class="form-group">
+                <label class="form-label">Titre</label>
+                <input type="text" id="f-title" class="form-input" placeholder="Ex: Idée de projet">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Catégorie</label>
+                <select id="f-cat" class="form-select"></select>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="f-fav">
+                <label for="f-fav">Favori ★</label>
+            </div>
+            <div class="checkbox-group" style="border-color: var(--warning); background-color: #FFFBF0;">
+                <input type="checkbox" id="f-secure" onchange="toggleSecureInput()">
+                <label for="f-secure">Note Sécurisée 🔒</label>
+            </div>
+            <div id="secure-password-container" class="secure-input-group">
+                <label class="form-label" style="color: #856404;">Mot de passe</label>
+                <div class="input-wrapper">
+                    <input type="password" id="f-secure-pass" class="form-input" placeholder="Entrez un mot de passe fort">
+                    <button type="button" class="toggle-pass-btn" onclick="toggleVisibility('f-secure-pass')">👁️</button>
+                </div>
+                <div style="font-size: 11px; color: #856404; margin-top: 4px;">
+                    ⚠️ Perte = Données perdues à jamais.
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Texte libre</label>
+                <textarea id="f-info" class="form-textarea" placeholder="Écrivez votre note ici..."></textarea>
+            </div>
+            <button class="btn-save" onclick="saveNote()">Enregistrer</button>
+        </div>
+    </div>
+
+    <!-- VUE GESTION CATÉGORIES -->
+    <div id="cat-manager-view" class="full-screen-view">
+        <div class="view-header">
+            <button class="back-btn" onclick="closeView('cat-manager-view')">← Retour</button>
+            <h2 style="margin:0; font-size:17px;">Catégories</h2>
+            <div style="width:50px;"></div>
+        </div>
+        <div class="view-content">
+            <div id="cat-list-container"></div>
+            <button class="btn-add-cat" onclick="createNewCategory()">+ Créer une catégorie</button>
+        </div>
+    </div>
+
+    <!-- MODAL OUVERTURE -->
+    <div id="password-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">🔒 Note Sécurisée</div>
+            <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Entrez le mot de passe pour déchiffrer.</p>
+            <div class="modal-input-wrapper">
+                <input type="password" id="modal-pass-input" class="modal-input" placeholder="Mot de passe">
+                <button type="button" class="modal-toggle-btn" onclick="toggleModalVisibility('modal-pass-input')">👁️</button>
+            </div>
+            <div class="modal-btns">
+                <button class="modal-btn modal-cancel" onclick="closeModal('password-modal')">Annuler</button>
+                <button class="modal-btn modal-confirm" onclick="submitPassword()">Ouvrir</button>
+            </div>
+            <div id="modal-error" class="modal-error">Incorrect !</div>
+        </div>
+    </div>
+
+    <!-- MODAL CHANGEMENT MDP -->
+    <div id="change-pass-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">🔑 Changer le mot de passe</div>
+            <p style="font-size: 12px; color: #666; margin-bottom: 12px;">Note: <span id="cp-note-title" style="font-weight:bold;"></span></p>
+            
+            <div class="modal-input-wrapper">
+                <input type="password" id="cp-old-pass" class="modal-input" placeholder="Ancien mot de passe">
+                <button type="button" class="modal-toggle-btn" onclick="toggleModalVisibility('cp-old-pass')">👁️</button>
+            </div>
+            <div class="modal-input-wrapper">
+                <input type="password" id="cp-new-pass" class="modal-input" placeholder="Nouveau mot de passe">
+                <button type="button" class="modal-toggle-btn" onclick="toggleModalVisibility('cp-new-pass')">👁️</button>
+            </div>
+            <div class="modal-input-wrapper">
+                <input type="password" id="cp-confirm-pass" class="modal-input" placeholder="Confirmer nouveau">
+                <button type="button" class="modal-toggle-btn" onclick="toggleModalVisibility('cp-confirm-pass')">👁️</button>
+            </div>
+            
+            <div class="modal-btns">
+                <button class="modal-btn modal-cancel" onclick="closeModal('change-pass-modal')">Annuler</button>
+                <button class="modal-btn modal-confirm" onclick="submitChangePassword()">Valider</button>
+            </div>
+            <div id="cp-error" class="modal-error"></div>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" accept=".json" onchange="importData(this)">
+
+    <script>
+        // --- VARIABLES ---
+        let notes = [];
+        let categories = [];
+        const DEFAULT_CAT_NAME = "Aucune catégorie";
+        let currentId = null;
+        let pendingNoteId = null; 
+        let decryptedContentCache = null;
+
+        const STORAGE_NOTES = 'myNotesData_v2';
+        const STORAGE_CATS = 'myNotesCats_v1';
+
+        // --- CRYPTO FUNCTIONS ---
+        const ALGO = 'AES-GCM';
+        const ITER = 100000;
+
+        async function deriveKey(password, salt) {
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+            return crypto.subtle.deriveKey(
+                { name: "PBKDF2", salt: salt, iterations: ITER, hash: "SHA-256" },
+                keyMaterial,
+                { name: ALGO, length: 256 },
+                false,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        async function encryptContent(text, password) {
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const key = await deriveKey(password, salt);
+            const enc = new TextEncoder();
+            const encrypted = await crypto.subtle.encrypt({ name: ALGO, iv: iv }, key, enc.encode(text));
+            
+            const buffer = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+            buffer.set(salt, 0);
+            buffer.set(iv, 16);
+            buffer.set(new Uint8Array(encrypted), 28);
+            return btoa(String.fromCharCode(...buffer));
+        }
+
+        async function decryptContent(base64Data, password) {
+            try {
+                const binaryString = atob(base64Data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+
+                const salt = bytes.slice(0, 16);
+                const iv = bytes.slice(16, 28);
+                const data = bytes.slice(28);
+
+                const key = await deriveKey(password, salt);
+                const decrypted = await crypto.subtle.decrypt({ name: ALGO, iv: iv }, key, data);
+                return new TextDecoder().decode(decrypted);
+            } catch (e) {
+                throw new Error("Invalid password");
+            }
+        }
+
+        // --- UTILS ---
+        function toggleVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            if (input.type === "password") {
+                input.type = "text";
+            } else {
+                input.type = "password";
+            }
+        }
+
+        function toggleModalVisibility(inputId) {
+            toggleVisibility(inputId);
+        }
+
+        // --- INIT & STORAGE ---
+        function init() {
+            const storedNotes = localStorage.getItem(STORAGE_NOTES);
+            const storedCats = localStorage.getItem(STORAGE_CATS);
+            if (storedNotes) notes = JSON.parse(storedNotes); else notes = [];
+            if (storedCats) {
+                categories = JSON.parse(storedCats);
+                if (!categories.find(c => c.name === DEFAULT_CAT_NAME)) categories.unshift({ id: Date.now(), name: DEFAULT_CAT_NAME });
+            } else {
+                categories = [{ id: 1, name: DEFAULT_CAT_NAME }];
+            }
+            updateCatSelects();
+            const defaultCat = categories.find(c => c.name === DEFAULT_CAT_NAME);
+            if (defaultCat) document.getElementById('cat-filter').value = defaultCat.id;
+            renderList();
+        }
+
+        function saveAll() {
+            localStorage.setItem(STORAGE_NOTES, JSON.stringify(notes));
+            localStorage.setItem(STORAGE_CATS, JSON.stringify(categories));
+            updateCatSelects();
+            renderList();
+        }
+
+        function updateCatSelects() {
+            const filterSelect = document.getElementById('cat-filter');
+            const formSelect = document.getElementById('f-cat');
+            const currentFilter = filterSelect.value;
+            filterSelect.innerHTML = '<option value="all">Toutes</option>';
+            formSelect.innerHTML = '';
+            const sortedCats = [...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+            sortedCats.forEach(cat => {
+                const opt1 = document.createElement('option'); opt1.value = cat.id; opt1.textContent = cat.name; filterSelect.appendChild(opt1);
+                const opt2 = document.createElement('option'); opt2.value = cat.id; opt2.textContent = cat.name; formSelect.appendChild(opt2);
+            });
+            if (currentFilter && categories.find(c => c.id == currentFilter)) filterSelect.value = currentFilter;
+            else {
+                const defaultCat = categories.find(c => c.name === DEFAULT_CAT_NAME);
+                if (defaultCat) filterSelect.value = defaultCat.id;
+            }
+        }
+
+        function renderList() {
+            const listContainer = document.getElementById('notes-list');
+            const filterCat = document.getElementById('cat-filter').value;
+            const rawSearchText = document.getElementById('search-bar').value;
+            const searchText = rawSearchText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            
+            listContainer.innerHTML = '';
+            let finalList = [];
+
+            if (searchText !== "") {
+                finalList = notes.filter(note => {
+                    const titleNorm = (note.title || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    if (titleNorm.includes(searchText)) return true;
+                    if (!note.isSecure) {
+                        const infoNorm = (note.info || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        return infoNorm.includes(searchText);
+                    }
+                    return false;
+                });
+                finalList.sort((a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }));
+            } else {
+                const favorites = notes.filter(note => note.isFav);
+                favorites.sort((a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }));
+                const others = notes.filter(note => {
+                    if (note.isFav) return false;
+                    if (filterCat === 'all') return true;
+                    return note.categoryId == filterCat;
+                });
+                others.sort((a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }));
+                finalList = [...favorites, ...others];
+            }
+
+            if (finalList.length === 0) {
+                listContainer.innerHTML = '<div style="text-align:center; color:#8E8E93; margin-top:20px; font-size:13px;">Aucune note</div>';
+                return;
+            }
+
+            finalList.forEach(note => {
+                const item = document.createElement('div');
+                item.className = 'note-item';
+                
+                const favDiv = document.createElement('div');
+                favDiv.className = 'fav-icon' + (note.isFav ? ' visible' : '');
+                favDiv.textContent = note.isFav ? '★' : '☆';
+                
+                const lockDiv = document.createElement('div');
+                lockDiv.className = 'lock-icon';
+                lockDiv.textContent = note.isSecure ? '🔒' : '';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'item-content';
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'note-title';
+                titleDiv.textContent = note.title || "";
+                
+                contentDiv.appendChild(titleDiv);
+                
+                let previewText = '';
+                if (!note.isSecure && note.info) {
+                    // Affichage brut : on affiche exactement ce qu'il y a dans la base (y compris les $ si l'utilisateur les a tapés)
+                    previewText = note.info.replace(/\n/g, ' ');
+                } else if (note.isSecure) {
+                    previewText = "Contenu protégé";
+                }
+                
+                if (previewText) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'note-preview';
+                    previewDiv.textContent = previewText;
+                    contentDiv.appendChild(previewDiv);
+                }
+                
+                item.appendChild(favDiv);
+                item.appendChild(lockDiv);
+                item.appendChild(contentDiv);
+                
+                item.onclick = () => handleNoteClick(note);
+                listContainer.appendChild(item);
+            });
+        }
+
+        function handleNoteClick(note) {
+            if (note.isSecure) {
+                pendingNoteId = note.id;
+                decryptedContentCache = null;
+                document.getElementById('modal-pass-input').value = '';
+                document.getElementById('modal-error').style.display = 'none';
+                document.getElementById('password-modal').style.display = 'flex';
+                document.getElementById('modal-pass-input').focus();
+            } else {
+                openDetail(note.id);
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            if (modalId === 'password-modal') pendingNoteId = null;
+        }
+
+        async function submitPassword() {
+            const pass = document.getElementById('modal-pass-input').value;
+            const note = notes.find(n => n.id === pendingNoteId);
+            if (!note || !pass) return;
+            try {
+                decryptedContentCache = await decryptContent(note.info, pass);
+                openDetail(pendingNoteId);
+                closeModal('password-modal');
+            } catch (e) {
+                document.getElementById('modal-error').style.display = 'block';
+            }
+        }
+
+        function openDetail(id) {
+            currentId = id;
+            const note = notes.find(n => n.id === id);
+            if (!note) return;
+
+            document.getElementById('d-title').textContent = note.title;
+            document.getElementById('d-fav-star').style.display = note.isFav ? 'block' : 'none';
+            document.getElementById('d-secure-badge').className = `secure-badge ${note.isSecure ? 'visible' : ''}`;
+            
+            const btnChange = document.getElementById('btn-change-pass');
+            
+            if (note.isSecure) {
+                if (decryptedContentCache !== null) {
+                    document.getElementById('d-info').textContent = decryptedContentCache;
+                    btnChange.classList.add('visible');
+                } else {
+                    document.getElementById('d-info').textContent = "Contenu chiffré.";
+                    btnChange.classList.remove('visible');
+                }
+            } else {
+                document.getElementById('d-info').textContent = note.info || "Aucun contenu.";
+                btnChange.classList.remove('visible');
+            }
+
+            const view = document.getElementById('detail-view');
+            view.style.display = 'flex';
+            view.classList.add('slide-in');
+        }
+
+        function openChangePassModal() {
+            const note = notes.find(n => n.id === currentId);
+            if (!note) return;
+            document.getElementById('cp-note-title').textContent = note.title;
+            document.getElementById('cp-old-pass').value = '';
+            document.getElementById('cp-new-pass').value = '';
+            document.getElementById('cp-confirm-pass').value = '';
+            document.getElementById('cp-error').textContent = '';
+            document.getElementById('cp-error').style.display = 'none';
+            document.getElementById('change-pass-modal').style.display = 'flex';
+            document.getElementById('cp-old-pass').focus();
+        }
+
+        async function submitChangePassword() {
+            const oldPass = document.getElementById('cp-old-pass').value;
+            const newPass = document.getElementById('cp-new-pass').value;
+            const confirmPass = document.getElementById('cp-confirm-pass').value;
+            const errorDiv = document.getElementById('cp-error');
+
+            if (!oldPass || !newPass || !confirmPass) {
+                errorDiv.textContent = "Champs obligatoires.";
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (newPass !== confirmPass) {
+                errorDiv.textContent = "Les mots de passe ne correspondent pas.";
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (newPass.length < 4) {
+                errorDiv.textContent = "Trop court.";
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const note = notes.find(n => n.id === currentId);
+            if (!note) return;
+
+            try {
+                const currentContent = await decryptContent(note.info, oldPass);
+                const newEncryptedContent = await encryptContent(currentContent, newPass);
+                note.info = newEncryptedContent;
+                saveAll();
+                decryptedContentCache = currentContent;
+                closeModal('change-pass-modal');
+                alert("Mot de passe changé !");
+                openDetail(currentId); 
+            } catch (e) {
+                errorDiv.textContent = "Ancien mot de passe incorrect.";
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function startEditProcess() {
+            if (!currentId) return;
+            const note = notes.find(n => n.id === currentId);
+            if (!note) return;
+
+            document.getElementById('f-id').value = note.id;
+            document.getElementById('f-title').value = note.title;
+            document.getElementById('f-cat').value = note.categoryId;
+            document.getElementById('f-fav').checked = note.isFav || false;
+            document.getElementById('f-secure').checked = note.isSecure || false;
+            
+            if (note.isSecure) {
+                document.getElementById('f-info').value = ""; 
+                document.getElementById('f-secure-pass').value = "";
+                if (decryptedContentCache !== null) {
+                     if(confirm("Pré-remplir avec le contenu déchiffré ?")) {
+                         document.getElementById('f-info').value = decryptedContentCache;
+                     }
+                } else {
+                    alert("Note sécurisée. Contenu non chargé.");
+                }
+            } else {
+                document.getElementById('f-info').value = note.info || '';
+                document.getElementById('f-secure-pass').value = "";
+            }
+
+            toggleSecureInput();
+            document.getElementById('form-title-text').textContent = "Modifier";
+            const formView = document.getElementById('form-view');
+            formView.style.display = 'flex';
+            formView.classList.add('slide-in');
+        }
+
+        function openForm() {
+            currentId = null;
+            decryptedContentCache = null;
+            const defaultCat = categories.find(c => c.name === DEFAULT_CAT_NAME);
+            document.getElementById('f-id').value = '';
+            document.getElementById('f-title').value = '';
+            document.getElementById('f-cat').value = defaultCat ? defaultCat.id : categories[0].id;
+            document.getElementById('f-fav').checked = false;
+            document.getElementById('f-secure').checked = false;
+            document.getElementById('f-info').value = '';
+            document.getElementById('f-secure-pass').value = '';
+            toggleSecureInput();
+            document.getElementById('form-title-text').textContent = "Nouvelle Note";
+            const formView = document.getElementById('form-view');
+            formView.style.display = 'flex';
+            formView.classList.add('slide-in');
+        }
+
+        function toggleSecureInput() {
+            const isSecure = document.getElementById('f-secure').checked;
+            const container = document.getElementById('secure-password-container');
+            if (isSecure) container.classList.add('visible');
+            else container.classList.remove('visible');
+        }
+
+        async function saveNote() {
+            const idVal = document.getElementById('f-id').value;
+            const title = document.getElementById('f-title').value.trim();
+            if (!title) { alert("Titre obligatoire."); return; }
+
+            const isSecure = document.getElementById('f-secure').checked;
+            const securePass = document.getElementById('f-secure-pass').value;
+            let finalContent = document.getElementById('f-info').value.trim();
+
+            if (isSecure) {
+                if (!securePass) { alert("Mot de passe requis."); return; }
+                if (!finalContent) { alert("Contenu vide."); return; }
+                try { finalContent = await encryptContent(finalContent, securePass); } 
+                catch (e) { alert("Erreur chiffrement."); return; }
+            }
+
+            const newData = {
+                title: title,
+                categoryId: parseInt(document.getElementById('f-cat').value),
+                isFav: document.getElementById('f-fav').checked,
+                isSecure: isSecure,
+                info: finalContent
+            };
+
+            if (idVal) {
+                const idNum = parseInt(idVal);
+                const index = notes.findIndex(n => n.id === idNum);
+                if (index !== -1) notes[index] = { id: idNum, ...newData };
+            } else {
+                notes.push({ id: Date.now(), ...newData });
+            }
+            decryptedContentCache = null;
+            saveAll();
+            closeView('form-view');
+        }
+
+        function deleteCurrentNote() {
+            if (!currentId) return;
+            if (confirm("Supprimer ?")) {
+                notes = notes.filter(n => n.id !== currentId);
+                decryptedContentCache = null;
+                saveAll();
+                closeView('detail-view');
+            }
+        }
+
+        function openCatManager() {
+            renderCatList();
+            const view = document.getElementById('cat-manager-view');
+            view.style.display = 'flex';
+            view.classList.add('slide-in');
+        }
+        function renderCatList() {
+            const container = document.getElementById('cat-list-container');
+            container.innerHTML = '';
+            const sortedCats = [...categories].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+            sortedCats.forEach(cat => {
+                const isDefault = cat.name === DEFAULT_CAT_NAME;
+                const item = document.createElement('div');
+                item.className = 'cat-list-item';
+                let actionsHtml = '';
+                if (!isDefault) {
+                    actionsHtml = `<div class="cat-actions"><button class="btn-edit-cat" onclick="editCategory($${cat.id})">Modif.</button><button class="btn-del-cat" onclick="deleteCategory($${cat.id})">Suppr.</button></div>`;
+                } else {
+                    actionsHtml = `<span style="font-size:11px; color:#8E8E93; font-style:italic;">Système</span>`;
+                }
+                item.innerHTML = `<div class="cat-name">$${cat.name}</div>$${actionsHtml}`;
+                container.appendChild(item);
+            });
+        }
+        function createNewCategory() {
+            const name = prompt("Nom de la nouvelle catégorie :");
+            if (name && name.trim() !== "") {
+                if (categories.find(c => c.name.toLowerCase() === name.trim().toLowerCase())) { alert("Existe déjà."); return; }
+                categories.push({ id: Date.now(), name: name.trim() });
+                saveAll();
+                renderCatList();
+            }
+        }
+        function editCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+            const newName = prompt("Nouveau nom :", cat.name);
+            if (newName && newName.trim() !== "") {
+                if (categories.find(c => c.name.toLowerCase() === newName.trim().toLowerCase() && c.id !== id)) { alert("Existe déjà."); return; }
+                cat.name = newName.trim();
+                saveAll();
+                renderCatList();
+            }
+        }
+        function deleteCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat || cat.name === DEFAULT_CAT_NAME) return;
+            if (confirm(`Supprimer "${cat.name}" ? Les notes iront dans "${DEFAULT_CAT_NAME}".`)) {
+                const defaultCat = categories.find(c => c.name === DEFAULT_CAT_NAME);
+                notes.forEach(note => { if (note.categoryId === id) note.categoryId = defaultCat.id; });
+                categories = categories.filter(c => c.id !== id);
+                saveAll();
+                renderCatList();
+            }
+        }
+
+        // --- EXPORT / IMPORT ---
+        function exportData() {
+            const data = { app: "MesNotesSecure", version: 2, notes: notes, categories: categories };
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const now = new Date();
+            a.download = `mes_notes_secure_${now.toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert("Sauvegarde effectuée !");
+        }
+
+        function triggerImport() { document.getElementById('file-input').click(); }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.app === "MesNotesSecure" && data.version === 2 && Array.isArray(data.notes) && Array.isArray(data.categories)) {
+                        categories = data.categories;
+                        notes = data.notes;
+                        if (!categories.find(c => c.name === DEFAULT_CAT_NAME)) categories.unshift({ id: Date.now(), name: DEFAULT_CAT_NAME });
+                        saveAll();
+                        alert("Restauration réussie !");
+                        closeView('detail-view'); closeView('form-view'); closeView('cat-manager-view');
+                    } else {
+                        alert("Format invalide ou version incompatible.");
+                    }
+                } catch (err) { alert("Erreur de lecture du fichier."); }
+                input.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function closeView(viewId) {
+            const view = document.getElementById(viewId);
+            view.style.display = 'none';
+            view.classList.remove('slide-in');
+            if (viewId === 'detail-view') {
+                currentId = null;
+                decryptedContentCache = null;
+            }
+        }
+
+        // Écouteurs d'événements globaux
+        document.getElementById('search-bar').addEventListener('input', () => renderList());
+        
+        // Gestion de la touche Entrée pour les modales
+        document.getElementById('modal-pass-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitPassword();
+        });
+        
+        document.getElementById('cp-old-pass').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') document.getElementById('cp-new-pass').focus();
+        });
+        document.getElementById('cp-new-pass').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') document.getElementById('cp-confirm-pass').focus();
+        });
+        document.getElementById('cp-confirm-pass').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitChangePassword();
+        });
+
+        // Initialisation au chargement de la page
+        init();
+    </script>
+</body>
+</html>
