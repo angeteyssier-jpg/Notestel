@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mes Notes Sécurisées</title>
+    <title>Notes Tél</title>
     <style>
         :root {
             --primary: #007AFF;
@@ -354,8 +354,8 @@
         let pendingNoteId = null; 
         let decryptedContentCache = null;
 
-        const STORAGE_NOTES = 'myNotesData_v2';
-        const STORAGE_CATS = 'myNotesCats_v1';
+        const STORAGE_NOTES = 'notesTel_data_v1';   // clés propres à NotesTel (séparées de Notes)
+        const STORAGE_CATS = 'notesTel_cats_v1';
 
         // --- CRYPTO FUNCTIONS ---
         const ALGO = 'AES-GCM';
@@ -776,11 +776,11 @@
                 item.className = 'cat-list-item';
                 let actionsHtml = '';
                 if (!isDefault) {
-                    actionsHtml = `<div class="cat-actions"><button class="btn-edit-cat" onclick="editCategory($${cat.id})">Modif.</button><button class="btn-del-cat" onclick="deleteCategory($${cat.id})">Suppr.</button></div>`;
+                    actionsHtml = `<div class="cat-actions"><button class="btn-edit-cat" onclick="editCategory(${cat.id})">Modif.</button><button class="btn-del-cat" onclick="deleteCategory(${cat.id})">Suppr.</button></div>`;
                 } else {
                     actionsHtml = `<span style="font-size:11px; color:#8E8E93; font-style:italic;">Système</span>`;
                 }
-                item.innerHTML = `<div class="cat-name">$${cat.name}</div>$${actionsHtml}`;
+                item.innerHTML = `<div class="cat-name">${cat.name}</div>${actionsHtml}`;
                 container.appendChild(item);
             });
         }
@@ -825,7 +825,7 @@
             const a = document.createElement('a');
             a.href = url;
             const now = new Date();
-            a.download = `mes_notes_secure_${now.toISOString().slice(0,10)}.json`;
+            a.download = `notestel_${now.toISOString().slice(0,10)}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
